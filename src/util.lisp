@@ -8,6 +8,14 @@
   `(when (not ,pred)
      ,@then))
 
+(defmacro probabilistic-if (prob then else)
+  `(if (prob ,prob)
+     ,then
+     ,else))
+
+(defmacro prob (prob)
+  `(< (random 1.0) ,prob))
+
 ;; list operations
 (defmethod take ((n integer) (x list))
   (when (and x (> n 0))
@@ -89,6 +97,26 @@
 
   (repeatedly n (lambda () (random-permutation x range))))
 
+(defmethod select-randomly ((n    integer)
+                            (coll list))
+  (select-randomly-iter n
+                        (length coll)
+                        coll))
+
+(defmethod select-randomly-iter ((n    integer)
+                                 (len  integer)
+                                 (coll list))
+  (when coll
+    ;; has n/len probability of selecting (car coll)
+    (probabilistic-if (/ n len)
+      (cons (car coll)
+            (select-randomly-iter (1- n)
+                                  (1- len)
+                                  (cdr coll)))
+      (select-randomly-iter n
+                            (1- len)
+                            (cdr coll)))))
+
 (defmacro eval-random (&rest body)
   (let* ((num (length body))
          (idx (random num))
@@ -103,3 +131,7 @@
   (apply #'+
          (mapcar #'square
                  x)))
+
+(defmethod sum-of-squares-difference ((a list)
+                                      (b list))
+  (sum-of-squares (mapcar #'- a b)))
