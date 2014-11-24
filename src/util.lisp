@@ -90,6 +90,16 @@
      (- (random range)
         (/ range 2))))
 
+(defmethod random-permutations ((x list)
+                                &optional
+                                (range 2.0)
+                                (prob  0.20))
+  (mapcar (lambda (i)
+            (probabilistic-if prob
+              (random-permutation i range)
+              i))
+          x))
+
 (defmethod n-random-permutations ((n integer)
                                   (x number)
                                   &optional
@@ -124,6 +134,14 @@
     choice))
 
 ;; math functions
+(defmethod abs- ((n number))
+  "Take the negation of the absolute value of n"
+  (- (abs n)))
+
+(defmethod mean ((x list))
+  (/ (apply #'+ x)
+     (length    x)))
+
 (defmethod square ((n number))
   (expt n 2))
 

@@ -1,10 +1,12 @@
 (load "util.lisp")
 
-(defconstant *population-size*      30)
-(defconstant *sample-size*          5)
-(defconstant *proportion-mutate*    0.05)
-(defconstant *proportion-copy*      0.90)
-(defconstant *proportion-crossover* 0.10)
+(defconstant *population-size*      100)
+(defconstant *sample-size*          10)
+(defconstant *proportion-mutate*    0.20)
+(defconstant *proportion-submutate* 0.40)
+(defconstant *proportion-copy*      0.80)
+(defconstant *proportion-crossover* 0.20)
+(defconstant *permutation-range*    10.0)
 
 (defclass equation ()
 ;; f(x) = rhs
@@ -12,17 +14,17 @@
    (N   :reader equation-N   :initarg :N   :initform 100     )))
 
 (defclass ode (equation)
-  ((y0  :reader equation-y0  :initarg :y0  :initform 0)
-   (x0  :reader equation-x0  :initarg :x0  :initform 0)
-   (xN  :reader equation-xN  :initarg :xN  :initform 1)
-   (val :reader equation-val :initarg :val :initform (range :min  0
-                                                            :max  1
-                                                            :step 0.01))))
+  ((y0 :reader equation-y0 :initarg :y0 :initform 0)
+   (x0 :reader equation-x0 :initarg :x0 :initform 0)
+   (xN :reader equation-xN :initarg :xN :initform 1)
+   (xs :reader equation-xs :initarg :xs :initform (range :min  0
+                                                         :max  1
+                                                         :step 0.01))))
 (defclass 1st-order-ode (ode) ())
 (defclass 2nd-order-ode (ode) ())
 
 (defclass solution ()
-  ((fitness :reader solution-fitness :initarg :fitness)))
+  ((fitness :accessor solution-fitness :initarg :fitness)))
 (defclass           ode-solution (    solution)
   ((y   :reader solution-y   :initarg :y  )))
 (defclass 1st-order-ode-solution (ode-solution)
@@ -63,9 +65,10 @@
 (defmethod display ((s 1st-order-ode-solution)
                     &key (output t))
   (format output
-          "y(x)  = ~A~%y'(x) = ~A"
-          (solution-y  s)
-          (solution-y- s)))
+          "y(x)  = ~A~%y'(x) = ~A~%fitness = ~D"
+          (solution-y       s)
+          (solution-y-      s)
+          (solution-fitness s)))
 
 (defmethod display ((p population)
                     &key (output t))
@@ -80,42 +83,52 @@
                                (x0  real)
                                (xN  real)
                                (N   integer))
-  (let* ((x (range :min x0
+  (let ((xs (range :min x0
                    :max xN
-                   :step (/ (- xN x0)
-                            N)))
-         (val (mapcar rhs x)))
+                   :step (float (/ (- xN x0)
+                                   N)))))
     (make-instance '1st-order-ode
       :rhs rhs
       :y0  y0
       :x0  x0
       :xN  xN
-      :N   N
-      :val val)))
+      :xs  xs
+      :N   N)))
 
 (defmethod step-size ((e ode))
-  (with-slots (x0 xN N) e
-    (/ (- xN x0)
-       N)))
+  (with-slots (xs) e
+    (- (second xs)
+       (first  xs))))
 
-(defmethod fitness ((vals list)
-                    (e    ode))
-  (- (sum-of-squares-difference vals
-                                (equation-val e))))
+(defmethod 1st-order-ode-fitness ((x  list)
+                                  (y  list)
+                                  (y- list)
+                                  (fn function))
+  (abs-
+   (sum-of-squares-difference y-
+                              (mapcar fn x y))))
 
 (defmethod fitness ((s 1st-order-ode-solution)
                     (e ode))
-  (fitness (solution-y- s) e))
+  (with-slots (xs rhs) e
+    (with-slots (y y-) s
+      (1st-order-ode-fitness xs y y- rhs))))
 
 (defmethod random-solution ((e 1st-order-ode))
-  (with-slots (y0 N) e
-    (let* ((y  (cons y0 (n-random-permutations (1- N) y0)))
-           (y- (diff-all y (step-size e)))
-           (fitness (fitness y- e)))
+  (with-slots (rhs xs y0 N) e
+    (let* ((y  (cons y0
+                     (n-random-permutations (1- N)
+                                            y0)))
+           (y- (diff-all y
+                         (step-size e)))
+           (f  (1st-order-ode-fitness xs
+                                      y
+                                      y-
+                                      rhs)))
       (make-instance '1st-order-ode-solution
-         :y       y
-         :y-      y-
-         :fitness fitness))))
+        :y       y
+        :y-      y-
+        :fitness f))))
 
 (defmethod diff ((pair list)
                  (h    real))
@@ -143,56 +156,78 @@
     (mutate s e)
     s))
 
-(defmethod mutate ((s 1st-order-ode-solution)
-                   (e ode))
-  (let ((h (step-size e)))
-    (permute-random s h)))
 
-(defmethod permute-random ((s 1st-order-ode-solution)
-                           (h real))
-  (with-slots (y y-) s
-    (let* ((i              (1+ (random (1- (length y)))))
-           ;; split y at the element to be permuted
-           (first-half-y   (take i y))
-           (second-half-y  (drop i y))
-           ;; permute the first element of the second half of y
-           (mutated-y      (random-permutation (car second-half-y)))
-           ;; 
-           (new-y          (append first-half-y
-                                   (list mutated-y)
-                                   (cdr second-half-y)))
-           (first-half-y-  (take (1- i) y-))
-           (second-half-y- (drop  i     y-))
-           (mutated-y-     (diff (list (car (last first-half-y))
-                                       mutated-y)
-                                 h))
-           (new-y-         (append first-half-y-
-                                   (list mutated-y-)
-                                   second-half-y-)))
-      (make-instance '1st-order-ode-solution
-        :y  new-y
-        :y- new-y-))))
+#|
+(defmethod mutate ((s 1st-order-ode-solution)
+                   (e 1st-order-ode))
+  (with-slots (rhs xs) e
+    (with-slots (y y-) s
+      (let* ((i              (1+ (random (1- (length y)))))
+             ;; split y at the element to be permuted
+             (first-half-y   (take i y))
+             (second-half-y  (drop i y))
+             ;; permute the first element of the second half of y
+             (mutated-y      (random-permutation (car second-half-y)
+                                                 *permutation-range*))
+             ;; 
+             (new-y          (append first-half-y
+                                     (list mutated-y)
+                                     (cdr second-half-y)))
+             (first-half-y-  (take (1- i) y-))
+             (second-half-y- (drop  i     y-))
+             (mutated-y-     (diff (list (car (last first-half-y))
+                                         mutated-y)
+                                   (step-size e)))
+             (new-y-         (append first-half-y-
+                                     (list mutated-y-)
+                                     second-half-y-))
+             (new-fitness    (1st-order-ode-fitness xs y y- rhs)))
+        (make-instance '1st-order-ode-solution
+          :y       new-y
+          :y-      new-y-
+          :fitness new-fitness)))))
+|#
+
+(defmethod mutate ((s 1st-order-ode-solution)
+                   (e 1st-order-ode))
+  (with-slots (rhs xs) e
+    (with-slots (y) s
+      (let* ((y0       (car y))
+             (y1-N     (cdr y))
+             (new-y1-N (random-permutations y1-N *permutation-range*
+                                                 *proportion-submutate*))
+             (new-y    (cons y0 new-y1-N))
+             (new-y-   (diff-all new-y
+                                 (step-size e)))
+             (fitness  (1st-order-ode-fitness xs new-y new-y- rhs)))
+        (make-instance '1st-order-ode-solution
+          :y       new-y
+          :y-      new-y-
+          :fitness fitness)))))
 
 (defmethod crossover ((m 1st-order-ode-solution)
                       (f 1st-order-ode-solution)
-                      (e ode))
-  (let* ((i      (1+ (random (- (length (solution-y m))
-                                2))))
-         (m-y    (take i      (solution-y  m)))
-         (f-y    (drop i      (solution-y  f)))
-         (m-y-   (take (1- i) (solution-y- m)))
-         (f-y-   (drop i      (solution-y- f)))
-         (mid-y- (diff (list (car (last m-y))
-                             (car f-y))
-                       (step-size e)))
-         (new-y  (append m-y
-                         f-y))
-         (new-y- (append m-y-
-                         (list mid-y-)
-                         f-y-)))
-    (make-instance '1st-order-ode-solution
-       :y  new-y
-       :y- new-y-)))
+                      (e 1st-order-ode))
+  (with-slots (rhs xs) e
+    (let* ((i      (1+ (random (- (length (solution-y m))
+                                  2))))
+           (m-y    (take i      (solution-y  m)))
+           (f-y    (drop i      (solution-y  f)))
+           (m-y-   (take (1- i) (solution-y- m)))
+           (f-y-   (drop i      (solution-y- f)))
+           (mid-y- (diff (list (car (last m-y))
+                               (car f-y))
+                         (step-size e)))
+           (new-y  (append m-y
+                           f-y))
+           (new-y- (append m-y-
+                           (list mid-y-)
+                           f-y-))
+           (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
+      (make-instance '1st-order-ode-solution
+        :y       new-y
+        :y-      new-y-
+        :fitness new-fitness))))
 
 (defmethod random-population ((e equation)
                               &optional
@@ -205,6 +240,9 @@
       :equation   e
       :solutions  initial-solutions)))
 
+(defmethod most-fit ((p population))
+  (most-fit (population-solutions p)))
+
 (defmethod most-fit ((solutions list))
   (reduce (lambda (leader competer)
             (if (> (solution-fitness leader)
@@ -212,6 +250,9 @@
               leader
               competer))
           solutions))
+
+(defmethod mean-fitness ((p population))
+  (mean (mapcar #'solution-fitness (population-solutions p))))
 
 (defmethod sample ((p population)
                    &optional
