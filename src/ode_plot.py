@@ -29,11 +29,11 @@ def plot(fn, filename, output,
         plt.title("Generation {}".format(i))
         plt.xlabel("x")
         plt.ylabel("y")
-        plt.savefig(path.join(output, str(i)))
+        plt.savefig("{}{}".format(output,i))
         plt.close('all')
 
 def plot_vector_field(fn, X, Y, X_COMP, Y_COMP,
                       xmin,xmax,ymin,ymax):
     plt.figure()
-    Q = plt.quiver(X, Y, X_COMP, Y_COMP)
+    plt.quiver(X, Y, X_COMP, Y_COMP)
     plt.axis([xmin,xmax,ymin,ymax])

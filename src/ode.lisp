@@ -1,12 +1,15 @@
 (load "util.lisp")
 
 (defconstant *population-size*      100)
-(defconstant *sample-size*          10)
-(defconstant *proportion-mutate*    0.20)
-(defconstant *proportion-submutate* 0.40)
+(defconstant *sample-size*          5)
+(defconstant *proportion-mutate*    0.15)
+;;(defconstant *proportion-submutate* 0.40)
 (defconstant *proportion-copy*      0.80)
 (defconstant *proportion-crossover* 0.20)
-(defconstant *permutation-range*    10.0)
+;;(defconstant *permutation-range*    10.0)
+
+(defconstant *gaussian-sigma*       0.5)
+(setf *error-metric* #'L1-norm)
 
 (defclass equation ()
 ;; f(x) = rhs
@@ -21,7 +24,6 @@
                                                          :max  1
                                                          :step 0.01))))
 (defclass 1st-order-ode (ode) ())
-(defclass 2nd-order-ode (ode) ())
 
 (defclass solution ()
   ((fitness :accessor solution-fitness :initarg :fitness)))
@@ -29,8 +31,6 @@
   ((y   :reader solution-y   :initarg :y  )))
 (defclass 1st-order-ode-solution (ode-solution)
   ((y-  :reader solution-y-  :initarg :y- )))
-(defclass 2nd-order-ode-solution (ode-solution)
-  ((y-- :reader solution-y-- :initarg :y--)))
 
 (defclass population ()
   ((generation :reader population-generation :initarg :generation)
@@ -52,13 +52,6 @@
                     &key (output t))
   (format output
           "dy/dx = ~A"
-          (display (coerce eqn ode)
-                   :output nil)))
-
-(defmethod display ((eqn 2nd-order-ode)
-                    &key (output t))
-  (format output
-          "d^2y/dx^2 = ~A"
           (display (coerce eqn ode)
                    :output nil)))
 
@@ -104,9 +97,7 @@
                                   (y  list)
                                   (y- list)
                                   (fn function))
-  (abs-
-   (sum-of-squares-difference y-
-                              (mapcar fn x y))))
+  (- (funcall *error-metric* y- (mapcar fn x y))))
 
 (defmethod fitness ((s 1st-order-ode-solution)
                     (e ode))
@@ -142,11 +133,6 @@
   (mapcar (lambda (pair)
             (diff pair h))
           (partition y 2 1)))
-
-(defmethod diff2-all ((y list)
-                      (h real))
-  (diff-all (diff-all y h)
-            h))
 
 (defmethod possibly-mutate ((s solution)
                             (e equation)
@@ -194,8 +180,10 @@
     (with-slots (y) s
       (let* ((y0       (car y))
              (y1-N     (cdr y))
-             (new-y1-N (random-permutations y1-N *permutation-range*
-                                                 *proportion-submutate*))
+             (new-y1-N (mapcar (lambda (x)
+                                 (+ x
+                                    (random-normal :std *gaussian-sigma*)))
+                               y1-N))
              (new-y    (cons y0 new-y1-N))
              (new-y-   (diff-all new-y
                                  (step-size e)))
@@ -253,6 +241,9 @@
 
 (defmethod mean-fitness ((p population))
   (mean (mapcar #'solution-fitness (population-solutions p))))
+
+(defmethod stdev-fitness ((p population))
+  (stdev (mapcar #'solution-fitness (population-solutions p))))
 
 (defmethod sample ((p population)
                    &optional

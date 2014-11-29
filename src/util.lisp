@@ -83,6 +83,12 @@
                       f))))
 
 ;; randomness functions
+(defun random-normal (&key (mean 0.0) (std 1.0))
+  (+ mean
+     (* (sqrt (* -2 (log (random 1.0))))
+        (cos (* 2 pi (random 1.0)))
+        std)))
+
 (defmethod random-permutation ((x number)
                                &optional
                                (range 2.0))
@@ -142,6 +148,15 @@
   (/ (apply #'+ x)
      (length    x)))
 
+(defun stdev (list)
+  (let ((mean (mean list))
+        (N    (length list)))
+    (sqrt (* (/ N)
+             (apply #'+
+                    (mapcar #'square
+                            (mapcar (lambda (x) (- x mean))
+                                    list)))))))
+
 (defmethod square ((n number))
   (expt n 2))
 
@@ -150,6 +165,8 @@
          (mapcar #'square
                  x)))
 
-(defmethod sum-of-squares-difference ((a list)
-                                      (b list))
+(defmethod L1-norm ((a list) (b list))
+  (apply #'+ (mapcar (lambda (x y) (abs (- x y))) a b)))
+
+(defmethod L2-norm ((a list) (b list))
   (sum-of-squares (mapcar #'- a b)))

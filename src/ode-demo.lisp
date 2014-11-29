@@ -1,17 +1,8 @@
 (load "ode.lisp")
+(load "example-equations.lisp")
 
 (defmethod ode-demo ()
-  (let* ((eqn (make-1st-order-ode
-                ;; dy/dx = x*y(x)
-                (lambda (x y) (* x y))
-                ;; y_0 = 0
-                0
-                ;; x_0 = 0
-                0
-                ;; x_N = 1
-                1
-                ;; N   = 20
-                20))
+  (let* ((eqn example-1st-order-ode-xy)
          (pop (random-population eqn)))
     (display pop)
     (setf pop
