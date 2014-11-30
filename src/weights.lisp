@@ -12,7 +12,7 @@
     weights))
 
 (defun unit-step-weight ((y list))
-  (let* ((N (1- (length y)))
+  (let* ((N (length y))
          (w_0 0.5)
          (w_i (/ 0.5
                  (1- N))))

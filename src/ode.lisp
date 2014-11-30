@@ -219,9 +219,9 @@
         :y-      new-y-
         :fitness new-fitness))))
 
-(defmethod init-error-function ((e ode))
-  (with-slots (xs) e
-    (let ((weights (unit-step-weight xs)))
+(defmethod init-error-function ((s 1st-order-ode-solution))
+  (with-slots (y-) s
+    (let ((weights (unit-step-weight y-)))
       (setf *error-function*
             (lambda (a b)
               (funcall *base-error-function*
@@ -230,7 +230,7 @@
 (defmethod random-population ((e equation)
                               &optional
                               (size *population-size*))
-  (init-error-function e)
+  (init-error-function (random-solution e))
   (let ((initial-solutions (repeatedly size
                                        (lambda ()
                                          (random-solution e)))))
