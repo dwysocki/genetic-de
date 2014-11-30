@@ -1,7 +1,7 @@
 (load "weights.lisp")
 (load "util.lisp")
 
-(defconstant *population-size*      100)
+(defconstant *population-size*      30)
 (defconstant *sample-size*          5)
 (defconstant *proportion-mutate*    0.15)
 ;;(defconstant *proportion-submutate* 0.40)
