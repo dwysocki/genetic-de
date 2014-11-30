@@ -302,8 +302,11 @@
                            (sample-size integer))
   (let ((mother (select-individual p sample-size))
         (father (select-individual p sample-size)))
-    (crossover mother father
-               (population-equation p))))
+    (if (equal mother father)
+      ;; asexual reproduction is not allowed. try again
+      (make-crossover p sample-size)
+      (crossover mother father
+                 (population-equation p)))))
 
 (defmethod make-crossovers ((n integer)
                             (p population)
