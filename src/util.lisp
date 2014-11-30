@@ -116,8 +116,14 @@
                                   (x number)
                                   &optional
                                   (range 2.0))
-
   (repeatedly n (lambda () (random-permutation x range))))
+
+(defmethod random-interleave ((a list) (b list))
+  (when (and a b)
+    (cons (eval-random (car a)
+                       (car b))
+          (random-interleave (cdr a)
+                             (cdr b)))))
 
 (defmethod select-randomly ((n    integer)
                             (coll list))

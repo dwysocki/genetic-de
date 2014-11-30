@@ -195,6 +195,7 @@
           :y-      new-y-
           :fitness fitness)))))
 
+#|
 (defmethod crossover ((m 1st-order-ode-solution)
                       (f 1st-order-ode-solution)
                       (e 1st-order-ode))
@@ -213,6 +214,21 @@
            (new-y- (append m-y-
                            (list mid-y-)
                            f-y-))
+           (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
+      (make-instance '1st-order-ode-solution
+        :y       new-y
+        :y-      new-y-
+        :fitness new-fitness))))
+|#
+
+(defmethod crossover ((m 1st-order-ode-solution)
+                      (f 1st-order-ode-solution)
+                      (e 1st-order-ode))
+  (with-slots (rhs xs) e
+    (let* ((new-y  (random-interleave (solution-y m)
+                                      (solution-y f)))
+           (new-y- (diff-all new-y
+                             (step-size e)))
            (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
       (make-instance '1st-order-ode-solution
         :y       new-y
