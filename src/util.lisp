@@ -169,6 +169,11 @@
                             (mapcar (lambda (x) (- x mean))
                                     list)))))))
 
+(defmethod normalize ((x list))
+  (let ((sum (reduce #'+ x)))
+    (mapcar (lambda (x) (/ x sum))
+            x)))
+
 (defmethod square ((n number))
   (expt n 2))
 

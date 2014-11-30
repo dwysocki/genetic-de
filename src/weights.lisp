@@ -11,11 +11,14 @@
          (weights (mapcar weight-fn indices)))
     weights))
 
-(defun unit-step-weight ((y list))
-  (let* ((N (length y))
-         (w_0 0.5)
+(defun unit-step-weight ((N integer))
+  (let* ((w_0 0.5)
          (w_i (/ 0.5
                  (1- N))))
     (cons w_0
           (repeat (1- N)
                   w_i))))
+
+(defun linear-decrease-weight ((N integer))
+  (mapcar (lambda (i) (- (1+ N) i))
+          (range :min 1 :max (1+ N))))

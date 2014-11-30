@@ -1,12 +1,12 @@
 (load "weights.lisp")
 (load "util.lisp")
 
-(defconstant *population-size*      30)
-(defconstant *sample-size*          5)
-(defconstant *proportion-mutate*    0.15)
+(defconstant *population-size*      100)
+(defconstant *sample-size*          8)
+(defconstant *proportion-mutate*    0.20)
 ;;(defconstant *proportion-submutate* 0.40)
-(defconstant *proportion-copy*      0.80)
-(defconstant *proportion-crossover* 0.20)
+(defconstant *proportion-copy*      0.40)
+(defconstant *proportion-crossover* 0.60)
 ;;(defconstant *permutation-range*    10.0)
 
 (defconstant *gaussian-sigma*       1.5)
@@ -235,17 +235,18 @@
         :y-      new-y-
         :fitness new-fitness))))
 
-(defmethod init-error-function ((x list))
-  (let ((weights (unit-step-weight x)))
+(defmethod init-error-function ((N integer))
+  (let* ((weights (linear-decrease-weight N))
+         (normed-weights (normalize weights)))
     (setf *error-function*
           (lambda (a b)
             (funcall *base-error-function*
-                     a b weights)))))
+                     a b normed-weights)))))
 
-(defmethod random-population ((e 1st-order-ode)
+(defmethod random-population ((e equation)
                               &optional
                               (size *population-size*))
-  (init-error-function (cdr (equation-xs e)))
+  (init-error-function (1- (equation-N e)))
   (let ((initial-solutions (repeatedly size
                                        (lambda ()
                                          (random-solution e)))))
