@@ -9,7 +9,7 @@
 (defconstant *proportion-crossover* 0.60)
 ;;(defconstant *permutation-range*    10.0)
 
-(defconstant *gaussian-sigma*       2.0)
+(defconstant *gaussian-sigma*       0.1)
 (setf *base-error-function* #'weighted-L1-norm)
 (defvar *error-function*)
 
@@ -80,8 +80,8 @@
                                (N   integer))
   (let ((xs (range :min x0
                    :max xN
-                   :step (float (/ (- xN x0)
-                                   N)))))
+                   :step (/ (- xN x0)
+                            N))))
     (make-instance '1st-order-ode
       :rhs rhs
       :y0  y0
