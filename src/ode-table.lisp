@@ -19,7 +19,7 @@
                       (output t))
   "Generates a table demonstrating the evolution of the most fit solution"
   (let ((pop (random-population e)))
-    (print-row (equation-xs e)
+    (print-row (mapcar #'float (equation-xs e))
                output)
     (print-best pop
                 output)
