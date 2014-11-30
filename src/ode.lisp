@@ -9,7 +9,7 @@
 (defconstant *proportion-crossover* 0.20)
 ;;(defconstant *permutation-range*    10.0)
 
-(defconstant *gaussian-sigma*       0.5)
+(defconstant *gaussian-sigma*       1.5)
 (setf *base-error-function* #'weighted-L1-norm)
 (defvar *error-function*)
 
@@ -235,18 +235,17 @@
         :y-      new-y-
         :fitness new-fitness))))
 
-(defmethod init-error-function ((s 1st-order-ode-solution))
-  (with-slots (y-) s
-    (let ((weights (unit-step-weight y-)))
-      (setf *error-function*
-            (lambda (a b)
-              (funcall *base-error-function*
-                       a b weights))))))
+(defmethod init-error-function ((x list))
+  (let ((weights (unit-step-weight x)))
+    (setf *error-function*
+          (lambda (a b)
+            (funcall *base-error-function*
+                     a b weights)))))
 
-(defmethod random-population ((e equation)
+(defmethod random-population ((e 1st-order-ode)
                               &optional
                               (size *population-size*))
-  (init-error-function (random-solution e))
+  (init-error-function (cdr (equation-xs e)))
   (let ((initial-solutions (repeatedly size
                                        (lambda ()
                                          (random-solution e)))))
