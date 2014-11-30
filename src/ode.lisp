@@ -1,3 +1,4 @@
+(load "weights.lisp")
 (load "util.lisp")
 
 (defconstant *population-size*      100)
@@ -9,7 +10,8 @@
 ;;(defconstant *permutation-range*    10.0)
 
 (defconstant *gaussian-sigma*       0.5)
-(setf *error-metric* #'L1-norm)
+(setf *base-error-function* #'weighted-L2-norm)
+(defvar *error-function*)
 
 (defclass equation ()
 ;; f(x) = rhs
@@ -97,7 +99,7 @@
                                   (y  list)
                                   (y- list)
                                   (fn function))
-  (- (funcall *error-metric* y- (mapcar fn x y))))
+  (- (funcall *error-function* y- (mapcar fn x y))))
 
 (defmethod fitness ((s 1st-order-ode-solution)
                     (e ode))
@@ -217,9 +219,18 @@
         :y-      new-y-
         :fitness new-fitness))))
 
+(defmethod init-error-function ((e ode))
+  (with-slots (xs) e
+    (let ((weights (unit-step-weight xs)))
+      (setf *error-function*
+            (lambda (a b)
+              (funcall *base-error-function*
+                       a b weights))))))
+
 (defmethod random-population ((e equation)
                               &optional
                               (size *population-size*))
+  (init-error-function e)
   (let ((initial-solutions (repeatedly size
                                        (lambda ()
                                          (random-solution e)))))

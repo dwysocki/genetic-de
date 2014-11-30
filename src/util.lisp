@@ -75,6 +75,12 @@
   (loop for n from min below max by step
      collect n))
 
+(defmethod repeat ((n integer) x)
+  (when (> n 0)
+    (cons x
+          (repeat (1- n)
+                  x))))
+
 (defmethod repeatedly ((n integer)
                        (f function))
   (when (> n 0)
@@ -170,3 +176,17 @@
 
 (defmethod L2-norm ((a list) (b list))
   (sum-of-squares (mapcar #'- a b)))
+
+(defmethod weighted-Lp-norm ((a list) (b list) (p real) (weights list))
+  (expt (apply #'+
+               (mapcar (lambda (x y w)
+                         (expt (abs (- x y))
+                               p))
+                       a b weights))
+        (/ p)))
+
+(defmethod weighted-L1-norm ((a list) (b list) (weights list))
+  (weighted-Lp-norm a b 1 weights))
+
+(defmethod weighted-L2-norm ((a list) (b list) (weights list))
+  (weighted-Lp-norm a b 2 weights))
