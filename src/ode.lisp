@@ -10,7 +10,7 @@
 ;;(defconstant *permutation-range*    10.0)
 
 (defconstant *gaussian-sigma*       0.5)
-(setf *base-error-function* #'weighted-L2-norm)
+(setf *base-error-function* #'weighted-L1-norm)
 (defvar *error-function*)
 
 (defclass equation ()
