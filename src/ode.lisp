@@ -91,9 +91,9 @@
       :N   N)))
 
 (defmethod step-size ((e ode))
-  (with-slots (xs) e
-    (- (second xs)
-       (first  xs))))
+  (with-slots (x0 xN N) e
+    (float (/ (- xN x0)
+              N))))
 
 (defmethod 1st-order-ode-fitness ((x  list)
                                   (y  list)
