@@ -115,10 +115,10 @@
 
 (defmethod initial-y-iter ((y_i real) (xs list) (f function))
   (when (cdr xs) ;; list has next value
-    (let* ((dy/dx (funcall f (car xs)
-                             y_i))
+    (let* ((dy/dx (float (funcall f (car xs)
+                                  y_i)))
            (y_i+1 (cond
-                    ((> dy/dx 0) (+ y_i (random dy/dx)))
+                    ((> dy/dx 0) (+ y_i (random    dy/dx)))
                     ((< dy/dx 0) (- y_i (random (- dy/dx))))
                     ((= dy/dx 0) y_i))))
       (cons y_i+1
