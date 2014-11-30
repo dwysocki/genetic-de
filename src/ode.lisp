@@ -118,8 +118,8 @@
     (let* ((dy/dx (funcall f (car xs)
                              y_i))
            (y_i+1 (cond
-                    ((> dy/dx 0) (+ y_i (random 1.0)))
-                    ((< dy/dx 0) (- y_i (random 1.0)))
+                    ((> dy/dx 0) (+ y_i (random dy/dx)))
+                    ((< dy/dx 0) (- y_i (random (- dy/dx))))
                     ((= dy/dx 0) y_i))))
       (cons y_i+1
             (initial-y-iter y_i+1
