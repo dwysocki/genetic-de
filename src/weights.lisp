@@ -22,3 +22,6 @@
 (defun linear-decrease-weight ((N integer))
   (mapcar (lambda (i) (- (1+ N) i))
           (range :min 1 :max (1+ N))))
+
+(defun uniform-weight ((N integer))
+  (repeat N 1))

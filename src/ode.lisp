@@ -199,6 +199,7 @@
           :fitness new-fitness)))))
 |#
 
+#|
 (defmethod mutate ((s 1st-order-ode-solution)
                    (e 1st-order-ode))
   (with-slots (rhs xs) e
@@ -217,6 +218,26 @@
           :y       new-y
           :y-      new-y-
           :fitness fitness)))))
+|#
+
+(defmethod mutate ((s 1st-order-ode-solution)
+                   (e 1st-order-ode))
+  (with-slots (rhs xs N) e
+    (with-slots (y) s
+      (let* (;; select index to mutate
+             ;; index cannot be first element
+             (i (1+ (random (1- N))))
+             (dy (random-normal :std *gaussian-sigma*))
+             (front-y (take i y))
+             (back-y  (mapcar (lambda (y) (+ dy y))
+                              (drop i y)))
+             (new-y (append front-y back-y))
+             (new-y- (diff-all new-y (step-size e)))
+             (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
+        (make-instance '1st-order-ode-solution
+          :y       new-y
+          :y-      new-y-
+          :fitness new-fitness)))))
 
 #|
 (defmethod crossover ((m 1st-order-ode-solution)
@@ -244,6 +265,7 @@
         :fitness new-fitness))))
 |#
 
+#|
 (defmethod crossover ((m 1st-order-ode-solution)
                       (f 1st-order-ode-solution)
                       (e 1st-order-ode))
@@ -257,9 +279,37 @@
         :y       new-y
         :y-      new-y-
         :fitness new-fitness))))
+|#
+
+(defmethod crossover ((m 1st-order-ode-solution)
+                      (f 1st-order-ode-solution)
+                      (e 1st-order-ode))
+  (with-slots (rhs xs N) e
+    (let* ((dx (step-size e))
+           (i (+ (random (- N 3))
+                 2))
+           (front-y (take i (solution-y m)))
+           (desired-division-dy (- (apply #'-
+                                          (take 2
+                                                (drop (1- i)
+                                                      (solution-y m))))))
+           (back-y (drop i (solution-y f)))
+           (actual-division-dy (- (car back-y)
+                                  (car (last front-y))))
+           (delta-dy (- actual-division-dy desired-division-dy))
+           (shifted-back-y (mapcar (lambda (y) (+ y delta-dy))
+                                   back-y))
+           (new-y (append front-y shifted-back-y))
+           (new-y- (diff-all new-y dx))
+           (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
+      (make-instance '1st-order-ode-solution
+        :y       new-y
+        :y-      new-y-
+        :fitness new-fitness))))
+
 
 (defmethod init-error-function ((N integer))
-  (let* ((weights (linear-decrease-weight N))
+  (let* ((weights (uniform-weight N))
          (normed-weights (normalize weights)))
     (setf *error-function*
           (lambda (a b)
