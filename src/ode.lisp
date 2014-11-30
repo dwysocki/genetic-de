@@ -117,7 +117,6 @@
   (when (cdr xs) ;; list has next value
     (let* ((dy/dx (funcall f (car xs)
                              y_i))
-           (_ (print dy/dx))
            (y_i+1 (cond
                     ((> dy/dx 0) (+ y_i (random 1.0)))
                     ((< dy/dx 0) (- y_i (random 1.0)))
