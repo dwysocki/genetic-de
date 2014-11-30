@@ -107,11 +107,32 @@
     (with-slots (y y-) s
       (1st-order-ode-fitness xs y y- rhs))))
 
+(defmethod initial-y ((y_0 real) (xs list) (f function))
+  (cons y_0
+        (initial-y-iter y_0
+                        xs
+                        f)))
+
+(defmethod initial-y-iter ((y_i real) (xs list) (f function))
+  (when (cdr xs) ;; list has next value
+    (let* ((dy/dx (funcall f (car xs)
+                             y_i))
+           (_ (print dy/dx))
+           (y_i+1 (cond
+                    ((> dy/dx 0) (+ y_i (random 1.0)))
+                    ((< dy/dx 0) (- y_i (random 1.0)))
+                    ((= dy/dx 0) y_i))))
+      (cons y_i+1
+            (initial-y-iter y_i+1
+                            (cdr xs)
+                            f)))))
+
 (defmethod random-solution ((e 1st-order-ode))
   (with-slots (rhs xs y0 N) e
-    (let* ((y  (cons y0
-                     (n-random-permutations (1- N)
-                                            y0)))
+    (let* ((y (initial-y y0 xs rhs))
+           ;; (y  (cons y0
+           ;;           (n-random-permutations (1- N)
+           ;;                                  y0)))
            (y- (diff-all y
                          (step-size e)))
            (f  (1st-order-ode-fitness xs
