@@ -3,13 +3,13 @@
 
 (defconstant *population-size*      100)
 (defconstant *sample-size*          8)
-(defconstant *proportion-mutate*    0.20)
+(defconstant *proportion-mutate*    0.50)
 ;;(defconstant *proportion-submutate* 0.40)
 (defconstant *proportion-copy*      0.40)
 (defconstant *proportion-crossover* 0.60)
 ;;(defconstant *permutation-range*    10.0)
 
-(defconstant *gaussian-sigma*       1.5)
+(defconstant *gaussian-sigma*       2.0)
 (setf *base-error-function* #'weighted-L1-norm)
 (defvar *error-function*)
 
