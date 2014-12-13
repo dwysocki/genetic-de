@@ -4,17 +4,15 @@
 (defconstant *population-size*      100)
 (defconstant *sample-size*          8)
 (defconstant *proportion-mutate*    0.50)
-;;(defconstant *proportion-submutate* 0.40)
 (defconstant *proportion-copy*      0.40)
 (defconstant *proportion-crossover* 0.60)
-;;(defconstant *permutation-range*    10.0)
-
 (defconstant *gaussian-sigma*       0.1)
+
 (setf *base-error-function* #'weighted-L1-norm)
 (defvar *error-function*)
 
 (defclass equation ()
-;; f(x) = rhs
+;; f(x, y) = rhs
   ((rhs :reader equation-rhs :initarg :rhs :initform #'identity)
    (N   :reader equation-N   :initarg :N   :initform 100     )))
 
@@ -40,23 +38,6 @@
    (solutions  :reader population-solutions  :initarg :solutions)))
 
 ;; DISPLAY METHODS ;;
-(defmethod display ((eqn ode)
-                    &key (output t))
-  (with-slots (y0 x0 xN) eqn
-    (format output
-            "f(y, x); y(~D) = ~D; ~D <= x <= ~D"
-            x0
-            y0
-            x0
-            xN)))
-
-(defmethod display ((eqn 1st-order-ode)
-                    &key (output t))
-  (format output
-          "dy/dx = ~A"
-          (display (coerce eqn ode)
-                   :output nil)))
-
 (defmethod display ((s 1st-order-ode-solution)
                     &key (output t))
   (format output
@@ -168,58 +149,6 @@
     s))
 
 
-#|
-(defmethod mutate ((s 1st-order-ode-solution)
-                   (e 1st-order-ode))
-  (with-slots (rhs xs) e
-    (with-slots (y y-) s
-      (let* ((i              (1+ (random (1- (length y)))))
-             ;; split y at the element to be permuted
-             (first-half-y   (take i y))
-             (second-half-y  (drop i y))
-             ;; permute the first element of the second half of y
-             (mutated-y      (random-permutation (car second-half-y)
-                                                 *permutation-range*))
-             ;; 
-             (new-y          (append first-half-y
-                                     (list mutated-y)
-                                     (cdr second-half-y)))
-             (first-half-y-  (take (1- i) y-))
-             (second-half-y- (drop  i     y-))
-             (mutated-y-     (diff (list (car (last first-half-y))
-                                         mutated-y)
-                                   (step-size e)))
-             (new-y-         (append first-half-y-
-                                     (list mutated-y-)
-                                     second-half-y-))
-             (new-fitness    (1st-order-ode-fitness xs y y- rhs)))
-        (make-instance '1st-order-ode-solution
-          :y       new-y
-          :y-      new-y-
-          :fitness new-fitness)))))
-|#
-
-#|
-(defmethod mutate ((s 1st-order-ode-solution)
-                   (e 1st-order-ode))
-  (with-slots (rhs xs) e
-    (with-slots (y) s
-      (let* ((y0       (car y))
-             (y1-N     (cdr y))
-             (new-y1-N (mapcar (lambda (x)
-                                 (+ x
-                                    (random-normal :std *gaussian-sigma*)))
-                               y1-N))
-             (new-y    (cons y0 new-y1-N))
-             (new-y-   (diff-all new-y
-                                 (step-size e)))
-             (fitness  (1st-order-ode-fitness xs new-y new-y- rhs)))
-        (make-instance '1st-order-ode-solution
-          :y       new-y
-          :y-      new-y-
-          :fitness fitness)))))
-|#
-
 (defmethod mutate ((s 1st-order-ode-solution)
                    (e 1st-order-ode))
   (with-slots (rhs xs N) e
@@ -239,48 +168,6 @@
           :y-      new-y-
           :fitness new-fitness)))))
 
-#|
-(defmethod crossover ((m 1st-order-ode-solution)
-                      (f 1st-order-ode-solution)
-                      (e 1st-order-ode))
-  (with-slots (rhs xs) e
-    (let* ((i      (1+ (random (- (length (solution-y m))
-                                  2))))
-           (m-y    (take i      (solution-y  m)))
-           (f-y    (drop i      (solution-y  f)))
-           (m-y-   (take (1- i) (solution-y- m)))
-           (f-y-   (drop i      (solution-y- f)))
-           (mid-y- (diff (list (car (last m-y))
-                               (car f-y))
-                         (step-size e)))
-           (new-y  (append m-y
-                           f-y))
-           (new-y- (append m-y-
-                           (list mid-y-)
-                           f-y-))
-           (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
-      (make-instance '1st-order-ode-solution
-        :y       new-y
-        :y-      new-y-
-        :fitness new-fitness))))
-|#
-
-#|
-(defmethod crossover ((m 1st-order-ode-solution)
-                      (f 1st-order-ode-solution)
-                      (e 1st-order-ode))
-  (with-slots (rhs xs) e
-    (let* ((new-y  (random-interleave (solution-y m)
-                                      (solution-y f)))
-           (new-y- (diff-all new-y
-                             (step-size e)))
-           (new-fitness (1st-order-ode-fitness xs new-y new-y- rhs)))
-      (make-instance '1st-order-ode-solution
-        :y       new-y
-        :y-      new-y-
-        :fitness new-fitness))))
-|#
-
 (defmethod crossover ((m 1st-order-ode-solution)
                       (f 1st-order-ode-solution)
                       (e 1st-order-ode))
@@ -289,6 +176,9 @@
            (i (+ (random (- N 3))
                  2))
            (front-y (take i (solution-y m)))
+           ;; one of the ugliest lines of code I've written in a while
+           ;; finds the difference between the last y value taken from the
+           ;; mother, and the mother's y value which succeeds it
            (desired-division-dy (- (apply #'-
                                           (take 2
                                                 (drop (1- i)
@@ -309,6 +199,7 @@
 
 
 (defmethod init-error-function ((N integer))
+  "Initializes the error function to use uniform weight."
   (let* ((weights (uniform-weight N))
          (normed-weights (normalize weights)))
     (setf *error-function*
@@ -329,9 +220,11 @@
       :solutions  initial-solutions)))
 
 (defmethod most-fit ((p population))
+  "Select the most fit solution from a population"
   (most-fit (population-solutions p)))
 
 (defmethod most-fit ((solutions list))
+  "Select the most fit solution from a list of solutions"
   (reduce (lambda (leader competer)
             (if (> (solution-fitness leader)
                    (solution-fitness competer))
@@ -348,17 +241,20 @@
 (defmethod sample ((p population)
                    &optional
                    (sample-size *sample-size*))
+  "Take a sample of the given size from the population"
   (select-randomly sample-size
                    (population-solutions p)))
 
 (defmethod select-individual ((p population)
                               (sample-size integer))
+  "Select the most fit individual from a sample of the population"
   (let* ((sampled-solutions (sample p sample-size)))
     (most-fit sampled-solutions)))
 
 (defmethod make-copy ((p                 population)
                       (sample-size       integer)
                       (proportion-mutate real))
+  "Make a single copy from the population"
   (possibly-mutate (select-individual p sample-size)
                    (population-equation p)
                    proportion-mutate))
@@ -367,12 +263,14 @@
                         (p                 population)
                         (sample-size       integer)
                         (proportion-mutate real))
+  "Make n copies from the population"
   (when (> n 0)
     (cons (make-copy p sample-size proportion-mutate)
           (make-copies (1- n) p sample-size proportion-mutate))))
 
 (defmethod make-crossover ((p population)
                            (sample-size integer))
+  "Make a single crossover from the population"
   (let ((mother (select-individual p sample-size))
         (father (select-individual p sample-size)))
     (if (equal mother father)
@@ -384,6 +282,7 @@
 (defmethod make-crossovers ((n integer)
                             (p population)
                             (sample-size integer))
+  "Make n crossovers from the population"
   (when (> n 0)
     (cons (make-crossover p sample-size)
           (make-crossovers (1- n) p sample-size))))
@@ -394,6 +293,8 @@
                             (proportion-mutate    *proportion-mutate*   )
                             (proportion-copy      *proportion-copy*     )
                             (proportion-crossover *proportion-crossover*))
+  "Make the given number of copies and crossovers from the population and
+  create a new population with them"
   (with-slots (generation equation solutions) current-population
     (let* ((size          (length solutions))
            (n-copies      (round (* size proportion-copy)))

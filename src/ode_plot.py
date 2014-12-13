@@ -35,7 +35,7 @@ def plot(dy_dx, filename, output,
         plt.title("Generation {}".format(i))
         plt.xlabel("x")
         plt.ylabel("y")
-        plt.savefig("{}{}".format(output,i))
+        plt.savefig("{}{}.pdf".format(output,i))
         plt.close('all')
 
 def plot_vector_field(X, Y, X_COMP, Y_COMP,
