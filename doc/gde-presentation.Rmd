@@ -1,0 +1,189 @@
+---
+author: "Daniel Wysocki"
+title: "Genetic Differential Equations"
+date: "December 1, 2014"
+output:
+  beamer_presentation:
+    toc: true
+    incremental: true
+    theme: "Berkeley"
+    colortheme: "dolphin"
+    fonttheme: "serif"
+    includes:
+      in_header: header.tex
+---
+
+# Differential Equations
+
+## Definition
+
+- a differential equation is any equation which relates a function with its
+  derivatives
+
+- in other words, it is an equation which relates some quantity
+  with its rates of change
+
+## Ordinary Differential Equations
+
+- an ordinary differential equation is the easiest to deal with, as it only
+  has derivatives with respect to a single variable
+
+\begin{gather*}
+  \only<2-> {
+    \diff{y}{x} = y(x)
+  } \\
+  \only<3-> {
+    \diff{y}{x} = x \cdot y(x)
+  } \\
+  \only<4-> {
+    \diff{^2y}{x^2} = x^2 y(x)
+  } \\
+  \only<5-> {
+    y''(x) + 2 y'(x) + y(x) = 0
+  }
+\end{gather*}
+
+## Real World Examples of ODE's
+
+\begin{gather*}
+  \only<1-> {
+    \text{Population equation:} \\
+    \diff{p}{t} = r p
+  } \\
+  \only<2-> {
+    \text{Pendulum equation:} \\
+    \diff{^2\theta}{t^2} + \frac{g}{\ell} \sin\theta = 0
+  } \\
+  \only<3-> {
+    \text{Schrödinger wave equation in 1D:} \\
+    \frac{\hbar^2}{2 m} \diff{^2\psi}{x^2} + (E - \frac{1}{2} k x^2) \psi = 0
+  }
+\end{gather*}
+
+
+## Exact Solutions to Differential Equations
+
+- the simplest differential equations can have their function solved for
+  exactly
+
+\begin{align*}
+  \onslide<2-> {
+             & \diff{y}{x} = x \cdot y(x)
+  } \\
+  \onslide<3-> {
+    \implies & \frac{1}{y} \D y = x \D x
+  } \\
+  \onslide<4-> {
+    \implies & \int \frac{1}{y} \D y = \int x \D x
+  } \\
+  \onslide<5-> {
+    \implies & \ln y = \frac{1}{2} x^2 + C
+  } \\
+  \onslide<6-> {
+    \implies & y(x) = C e^{x^2 / 2}
+  }
+\end{align*}
+
+## Numerical Solutions to Differential Equations
+
+- most differential equations cannot be solved exactly
+- numerical solutions seek to find the value of the function $y(x)$ at
+  specific values of $x$
+- need some initial value $y(x_0) = y_0$, as otherwise there are infinitely
+  many solutions
+- this is the approach used for the genetic algorithm
+
+# Genetic Algorithm
+
+## Problem
+
+- find values of $y(x)$ at evenly spaced values of $x$ which best satisfy
+
+\begin{displaymath}
+  \diff{y}{x} = f(x, y);\
+  y(x_0) = y_0;\
+  x \in \{ x_0, x_0 + h, \ldots , x_0 + (N-1) h \}
+\end{displaymath}
+
+## Parameters
+
+- $f(x, y)$
+- $y_0$, $x_0$, $x_N$
+- $N$
+
+## Initial Solutions
+
+- list of $y_i$ values
+- $y_0$ is exactly equal to the provided $y_0$ (never changes)
+- $y_{i+1}$ is constrained by $f(x_i, y_i)$
+    - if $f(x_i, y_i) > 0$, then $h f(x_i, y_i) > y_{i+1} - y_i > 0$
+    - if $f(x_i, y_i) < 0$, then $h f(x_i, y_i) < y_{i+1} - y_i < 0$
+    - if $f(x_i, y_i) = 0$, then $y_{i+1} = y_i$
+
+## Mutation
+
+- select an index $0 < i < N$
+- add a number $\epsilon$ to all values $y_i, \ldots, y_{N-1}$
+- $\epsilon$ is selected from a gaussian distribution centered on $0$ with
+  some spread $\sigma$
+
+## Crossover
+
+- select an index $1 < i < N-1$
+- take $y_0, \ldots, y_i$ from mother
+- take $y_{i+1}, \ldots, y_{N-1}$ from father
+- shift the $y$ values of the father so $y_{i+1} - y_i$ in the child is the
+  same as it was in the mother
+- this has the effect of inheriting the values of $\diff{y}{x}$, instead of
+  just $y(x)$
+
+## Fitness
+
+- approximate value of the derivative is taken by the Euler method
+- $$\diff{y_i}{x_i} \approx \frac{y_{i+1} - y_i}{h}$$
+- the difference between this and the provided function $f(x_i,y_i)$ is taken
+- the negation of $L_1$-norm of this difference is the fitness function
+- the less negative a solution's fitness is, the better
+
+# Demos
+
+## Parameters
+
+- population size: 100
+- sample size: 8
+- proportion mutate: 0.50
+- proportion copy: 0.40
+- proportion crossover: 0.60
+- $\sigma$: 0.1
+- iterations: 350
+
+## Demo 1
+
+- $f(x,y) = x y;\ y(0) = 1;\ x \in \{ 0, 0.02, 0.04, \ldots 0.98 \}$
+- $y(x) = e^{x^2 / 2}$
+
+\begin{figure}
+  \centering
+  \animategraphics[loop,height=0.75\textheight,autoplay,controls]
+    {60}{img/ode-demo-xy/ode-}{0}{350}
+\end{figure}
+
+
+## Demo 2
+
+- $f(x,y) = x y;\ y(0) = 1;\ x \in \{ 0, 0.02, 0.04, \ldots 0.98 \}$
+- $y(x) = 2 \cot^{-1}\left( e^{-x^2 / 2} \cot\left( \frac{1}{2} \right) \right)$
+
+\begin{figure}
+  \centering
+  \animategraphics[loop,height=0.75\textheight,autoplay,controls]
+    {60}{img/ode-demo-xsiny/ode-}{0}{350}
+\end{figure}
+
+## References
+
+[Mateescu, G. D., 2006](
+  http://www.ipe.ro/rjef/rjef2_06/rjef2_06_1.pdf)
+
+[Howard, D & Kolibal, J, 2005](
+  http://www.genetic-programming.org/hc2005/bds.pdf)
